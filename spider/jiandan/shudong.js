@@ -2,12 +2,13 @@
 
 const Nightmare = require('nightmare')
 const cheerio = require("cheerio")
-const host = require('./config').host
-
-const mysql = require('mysql')
 const uuid = require('uuid')
 const dayjs = require('dayjs')
 
+const db = require('../../db')
+const dbName = 'shudong'
+
+const host = require('./config').host
 
 const nightmare = Nightmare()
 
@@ -50,51 +51,30 @@ function getShudong () {
 async function spiderShudong () {
   
   let list = await getShudong()
-  console.log(list)
+  list.forEach(async item => {
 
-  const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'queen',
-    port: '3306',
-    database: 'hot_dev'
-  })
+    let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
 
-  connection.connect()
-  console.log('数据库连接')
+    if (!queryResult.length) {
 
-  
-  list.forEach(item => {
-    connection.query('SELECT * FROM `shudong` WHERE `originId` = ?', [item.originId], (err, result) => {
-      if (!result.length) {
+      let createDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
 
-        let createDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
-        let row = { 
-          ...item,
-          createDate,
-          updateDate: createDate,
-          id: uuid.v1()
-        }
-        connection.query('INSERT INTO shudong SET ?', row, (err, result) => {
-          if (err) {
-            console.log('插入数据出错', err)
-          } else {
-            console.log(`数据插入成功 id ${row.id}`)
-          }
-        })
-
-      } else {
-        console.log(`数据已存在 originId: ${item.originId}`)
+      let row = { 
+        ...item,
+        createDate,
+        updateDate: createDate,
+        id: uuid.v1()
       }
-    })
 
+      db.insert(`INSERT INTO ${dbName} SET ?`, row).then(result => {
+        console.log(`数据插入成功 id ${row.id}`)
+      }).catch(err => {
+        console.log('插入数据出错', err)
+      })
+    } else {
+      console.log(`数据已存在 originId: ${item.originId}`)
+    }
   })
-
-  setTimeout(() => {
-    connection.end()
-    console.log('数据库断开')
-  }, 10)
-  
 }
 
 module.exports = spiderShudong
