@@ -1,3 +1,5 @@
 const jiandan = require('./spider/jiandan')
 
-jiandan.spiderShudong()
+//jiandan.spiderShudong()
+
+jiandan.spiderMeizi()

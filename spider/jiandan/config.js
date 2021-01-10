@@ -1,4 +1,4 @@
-const host = 'http://jandan.net/'
+const host = 'https://jandan.net/'
 
 module.exports = {
   host
