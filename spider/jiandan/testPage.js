@@ -35,8 +35,28 @@ function getMeizi () {
     return window.htmlArr
   })
   .end()
-  .then(html => {
-    console.log(html)
+  .then(htmlList => {
+    console.log(htmlList)
+    let articleList = []
+    htmlList.forEach(html => {
+      let $ = cheerio.load(html)
+      $('article.post-box').each((index, article) => {
+        let tags = []
+        $(article).find('.post-info .thecategory a').each((index, tag) => tags.push($(tag).html()))
+
+        let articleItem = {
+          cover: $(article).find('.post-img img').attr('src'),
+          title: $(article).find('.post-data .post-title a').html(),
+          excerpt: $(article).find('.post-data .post-excerpt').html(),
+          originUrl: $(article).find('.post-data .post-title a').attr('href'),
+          originUrl: $(article).find('.post-info .thetime span').html(),
+          tags: tags
+        }
+
+        articleList.push(articleItem)
+        console.log(articleItem)
+      })
+    })
   })
   .catch((err) => {
     console.log(err)
@@ -46,8 +66,7 @@ function getMeizi () {
 
 async function testPage () {
   
-  let list = await getMeizi()
-  console.log(list)
+  await getMeizi()
 
 }
 
