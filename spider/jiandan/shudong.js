@@ -25,7 +25,7 @@ function getShudong () {
 
     $ = cheerio.load(html)
     let comments = []
-    $('.commentlist li').each((index, li) => {
+    $('.commentlist li:not(.row)').each((index, li) => {
 
       let comment = {
         originId: $(li).find('.text .righttext a').html(),

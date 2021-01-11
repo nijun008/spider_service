@@ -6,7 +6,7 @@ const uuid = require('uuid')
 const dayjs = require('dayjs')
 
 const db = require('../../db')
-const dbName = 'meizi'
+const dbName = 'meizitu'
 
 const host = require('./config').host
 
@@ -24,8 +24,8 @@ function getMeizi () {
   .then(html => {
     $ = cheerio.load(html)
     let imgs = []
-    $('.commentlist li').each((index, li) => {
-      // console.log(li)
+    $('.commentlist li:not(.row)').each((index, li) => {
+
       let img = {
         originId: $(li).find('.righttext a').html(),
         author: $(li).find('.author strong').html(),
@@ -34,9 +34,8 @@ function getMeizi () {
         largeImg: 'https:' + $(li).find('.text .view_img_link').attr('href'),
         approvalCounts: $(li).find('.jandan-vote .tucao-like-container span').html(),
         opposeCounts: $(li).find('.jandan-vote .tucao-unlike-container span').html(),
-        // commentsCounts: $(li).find('.jandan-vote .tucao-btn').html().split('[')[1].split(']')[0],
+        commentsCounts: $(li).find('.jandan-vote .tucao-btn').html().split('[')[1].split(']')[0]
       }
-      console.log($(li).find('.jandan-vote .tucao-btn').html())
 
       imgs.push(img)
     })
@@ -45,7 +44,7 @@ function getMeizi () {
   })
   .catch((err) => {
     console.log(err)
-    console.log('抓取煎蛋树洞出错')
+    console.log('抓取煎蛋妹子图出错')
   })
   
 }
@@ -54,31 +53,30 @@ async function spiderMeizi () {
   
   let list = await getMeizi()
 
-  console.log(list)
-  // list.forEach(async item => {
+  list.forEach(async item => {
 
-  //   let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
+    let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
 
-  //   if (!queryResult.length) {
+    if (!queryResult.length) {
 
-  //     let createDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
+      let createDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
 
-  //     let row = { 
-  //       ...item,
-  //       createDate,
-  //       updateDate: createDate,
-  //       id: uuid.v1()
-  //     }
+      let row = { 
+        ...item,
+        createDate,
+        updateDate: createDate,
+        id: uuid.v1()
+      }
 
-  //     db.insert(`INSERT INTO ${dbName} SET ?`, row).then(result => {
-  //       console.log(`数据插入成功 id ${row.id}`)
-  //     }).catch(err => {
-  //       console.log('插入数据出错', err)
-  //     })
-  //   } else {
-  //     console.log(`数据已存在 originId: ${item.originId}`)
-  //   }
-  // })
+      db.insert(`INSERT INTO ${dbName} SET ?`, row).then(result => {
+        console.log(`数据插入成功 id ${row.id}`)
+      }).catch(err => {
+        console.log('插入数据出错', err)
+      })
+    } else {
+      console.log(`数据已存在 originId: ${item.originId}`)
+    }
+  })
 }
 
 module.exports = spiderMeizi
