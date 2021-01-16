@@ -10,13 +10,16 @@ const dbName = 'meizitu'
 
 const host = require('./config').host
 
-const nightmare = Nightmare()
+// const nightmare = Nightmare()
 
 
-function getMeizi () {
+function getMeizi (url) {
+
+  let nightmare = Nightmare()
 
   return nightmare
-  .goto(`${host}ooxx`)
+  .goto(url)
+  .wait('.commentlist')
   .evaluate(() => {
     return document.querySelector('#comments').innerHTML
   })
@@ -40,7 +43,14 @@ function getMeizi () {
       imgs.push(img)
     })
 
-    return imgs
+    console.log('正在抓取：' + $('.current-comment-page').eq(0).html() + '页')
+
+    let nextPageUrl = undefined
+    if ($('.previous-comment-page').length) {
+      nextPageUrl = $('.previous-comment-page').eq(0).attr('href')
+    }
+
+    return { imgs, nextPageUrl }
   })
   .catch((err) => {
     console.log(err)
@@ -49,11 +59,11 @@ function getMeizi () {
   
 }
 
-async function spiderMeizi () {
+async function spiderMeizi (url = `${host}ooxx`) {
   
-  let list = await getMeizi()
+  let { imgs, nextPageUrl } = await getMeizi(url)
 
-  list.forEach(async item => {
+  imgs.forEach(async item => {
 
     let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
 
@@ -68,15 +78,19 @@ async function spiderMeizi () {
         id: uuid.v1()
       }
 
-      db.insert(`INSERT INTO ${dbName} SET ?`, row).then(result => {
-        console.log(`数据插入成功 id ${row.id}`)
-      }).catch(err => {
+      db.insert(`INSERT INTO ${dbName} SET ?`, row).catch(err => {
         console.log('插入数据出错', err)
       })
     } else {
       console.log(`数据已存在 originId: ${item.originId}`)
     }
   })
+
+  if (nextPageUrl) {
+    setTimeout(() => {
+      spiderMeizi('https:' + nextPageUrl)
+    }, 5000)
+  }
 }
 
 module.exports = spiderMeizi

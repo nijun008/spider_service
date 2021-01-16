@@ -3,7 +3,12 @@
 const Nightmare = require('nightmare')
 const cheerio = require("cheerio")
 
-const nightmare = Nightmare()
+const nightmare = Nightmare({
+  show: true,
+  openDevTools: {
+    mode: 'right',       // 开发者工具位置: right, bottom, undocked, detach
+  },
+})
 
 function getMeizi () {
   return nightmare

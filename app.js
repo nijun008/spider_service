@@ -2,6 +2,6 @@ const jiandan = require('./spider/jiandan')
 
 //jiandan.spiderShudong()
 
-// jiandan.spiderMeizi()
+jiandan.spiderMeizi()
 
-jiandan.testPage()
+// jiandan.testPage()
