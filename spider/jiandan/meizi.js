@@ -1,4 +1,4 @@
-// 随手拍（妹子图）
+// 随手拍
 
 const Nightmare = require('nightmare')
 const cheerio = require("cheerio")
@@ -8,9 +8,12 @@ const dayjs = require('dayjs')
 const db = require('../../db')
 const dbName = 'meizitu'
 
-const host = require('./config').host
+const config = require('./config')
 
-// const nightmare = Nightmare()
+let { host, timeTranslate } = config
+
+const baseUrl  = `${host}ooxx`
+const endPage = 70
 
 
 function getMeizi (url) {
@@ -33,6 +36,7 @@ function getMeizi (url) {
         originId: $(li).find('.righttext a').html(),
         author: $(li).find('.author strong').html(),
         originUrl: `${host}${$(li).find('.text .righttext a').attr('href')}`,
+        originDate: $(li).find('.author small a').html().replace(/[@\sago钟小个]/g, ''),
         thumbnail: 'https:' + $(li).find('.text img').attr('src'),
         largeImg: 'https:' + $(li).find('.text .view_img_link').attr('href'),
         approvalCounts: $(li).find('.jandan-vote .tucao-like-container span').html(),
@@ -43,10 +47,12 @@ function getMeizi (url) {
       imgs.push(img)
     })
 
-    console.log('正在抓取：' + $('.current-comment-page').eq(0).html() + '页')
+
+    let currentPage = $('.current-comment-page').eq(0).html().replace(/\[|\]/g, '')
+    console.log(`正在爬取第：${currentPage}页`)
 
     let nextPageUrl = undefined
-    if ($('.previous-comment-page').length) {
+    if ($('.previous-comment-page').length && Number(currentPage) > endPage) {
       nextPageUrl = $('.previous-comment-page').eq(0).attr('href')
     }
 
@@ -59,7 +65,7 @@ function getMeizi (url) {
   
 }
 
-async function spiderMeizi (url = `${host}ooxx`) {
+async function spiderMeizi (url = baseUrl) {
   
   let { imgs, nextPageUrl } = await getMeizi(url)
 
@@ -67,29 +73,53 @@ async function spiderMeizi (url = `${host}ooxx`) {
 
     let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
 
-    if (!queryResult.length) {
+    let nowDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    
+    let time = item.originDate.substr(0, item.originDate.length - 1)
+    let unit = item.originDate.substr(-1 , 1)
+    let originDate = dayjs().subtract(time, timeTranslate[unit]).format('YYYY-MM-DD')
 
-      let createDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    delete item.originDate
+
+    if (queryResult.length) {
+
+      let paramsArr = [
+        originDate,
+        item.approvalCounts,
+        item.opposeCounts,
+        item.commentsCounts,
+        nowDate,
+        item.originId
+      ]
+
+      db.insert(`UPDATE ${dbName} SET originDate = ?,approvalCounts = ?,opposeCounts = ?,commentsCounts = ?,updateDate = ? WHERE originId = ?`, paramsArr).then(() => {
+        return true
+      }).catch(err => {
+        console.log('更新数据出错', err)
+      })
+
+    } else {
 
       let row = { 
         ...item,
-        createDate,
-        updateDate: createDate,
+        createDate: nowDate,
+        updateDate: nowDate,
         id: uuid.v1()
       }
 
-      db.insert(`INSERT INTO ${dbName} SET ?`, row).catch(err => {
+      db.insert(`INSERT INTO ${dbName} SET ?`, row).then(() => {
+        return true
+      }).catch(err => {
         console.log('插入数据出错', err)
       })
-    } else {
-      console.log(`数据已存在 originId: ${item.originId}`)
+
     }
   })
 
   if (nextPageUrl) {
     setTimeout(() => {
       spiderMeizi('https:' + nextPageUrl)
-    }, 5000)
+    }, 3000)
   }
 }
 
