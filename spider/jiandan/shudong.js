@@ -1,5 +1,4 @@
 // 树洞
-
 const Nightmare = require('nightmare')
 const cheerio = require("cheerio")
 const uuid = require('uuid')
@@ -14,6 +13,7 @@ let { host, timeTranslate } = config
 
 const baseUrl  = `${host}treehole`
 const endPage = -1
+const endTimeFlag = '周'
 
 
 function getShudong (url) {
@@ -22,6 +22,7 @@ function getShudong (url) {
   return nightmare
   .goto(url)
   .wait('.commentlist')
+  .wait(500)
   .evaluate(() => {
     return document.querySelector('#content').innerHTML
   })
@@ -40,18 +41,21 @@ function getShudong (url) {
         originDate: $(li).find('.author small a').html().replace(/[@\sago钟小个]/g, ''),
         approvalCounts: $(li).find('.tucao-like-container span').html(),
         opposeCounts: $(li).find('.tucao-unlike-container span').html(),
-        commentsCounts: $(li).find('.jandan-vote .tucao-btn').html().split('[')[1].split(']')[0],
       }
 
       comments.push(comment)
     })
 
     let currentPage = $('.current-comment-page').eq(0).html().replace(/\[|\]/g, '')
-    console.log(`正在爬取第：${currentPage}页`)
+    console.log(`Spidering Shudong page number ${currentPage}`)
 
     let nextPageUrl = undefined
     if ($('.previous-comment-page').length && Number(currentPage) > endPage) {
       nextPageUrl = $('.previous-comment-page').eq(0).attr('href')
+    }
+
+    if (comments.find(item => item.originDate.indexOf(endTimeFlag) !== -1)) {
+      nextPageUrl = undefined
     }
     
     return { comments, nextPageUrl }
@@ -62,59 +66,70 @@ function getShudong (url) {
   
 }
 
-async function spiderShudong (url = baseUrl) {
-  
-  let { comments, nextPageUrl } = await getShudong(url)
-  comments.forEach(async item => {
+function insertData (comment) {
+  let nowDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
 
-    let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
+  let row = { 
+    ...comment,
+    createDate: nowDate,
+    updateDate: nowDate,
+    id: uuid.v1()
+  }
 
-    let nowDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
-    
-    let time = item.originDate.substr(0, item.originDate.length - 1)
-    let unit = item.originDate.substr(-1 , 1)
-    let originDate = dayjs().subtract(time, timeTranslate[unit]).format('YYYY-MM-DD')
-
-    delete item.originDate
-
-    if (queryResult.length) { // 更新
-      let paramsArr = [
-        originDate,
-        item.approvalCounts,
-        item.opposeCounts,
-        item.commentsCounts,
-        nowDate,
-        item.originId
-      ]
-
-      db.insert(`UPDATE ${dbName} SET originDate = ?,approvalCounts = ?,opposeCounts = ?,commentsCounts = ?,updateDate = ? WHERE originId = ?`, paramsArr).then(() => {
-        return true
-      }).catch(err => {
-        console.log('更新数据出错', err)
-      })
-    
-    } else { // 新增
-
-      let row = { 
-        ...item,
-        createDate: nowDate,
-        updateDate: nowDate,
-        id: uuid.v1()
-      }
-
-      db.insert(`INSERT INTO ${dbName} SET ?`, row).then(() => {
-        return true
-      }).catch(err => {
-        console.log('插入数据出错', err)
-      })
-    }
+  db.insert(`INSERT INTO ${dbName} SET ?`, row).then(() => {
+    return true
+  }).catch(err => {
+    console.log('插入数据出错', err)
   })
 
-  if (nextPageUrl) {
+}
+
+function updataData (comment) {
+  let nowDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
+
+  let paramsArr = [
+    comment.originDate,
+    comment.approvalCounts,
+    comment.opposeCounts,
+    comment.commentsCounts,
+    nowDate,
+    comment.originId
+  ]
+
+  db.insert(`UPDATE ${dbName} SET originDate = ?,approvalCounts = ?,opposeCounts = ?,commentsCounts = ?,updateDate = ? WHERE originId = ?`, paramsArr).then(() => {
+    return true
+  }).catch(err => {
+    console.log('更新数据出错', err)
+  })
+}
+
+async function spiderShudong (url = baseUrl) {
+
+  return new Promise(async (resolve, reject) => {
+    let { comments, nextPageUrl } = await getShudong(url)
+
+    for (let item of comments) {
+
+      let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE originId = ?`, [item.originId])
+      
+      let time = item.originDate.substr(0, item.originDate.length - 1)
+      let unit = item.originDate.substr(-1 , 1)
+      item.originDate = dayjs().subtract(time, timeTranslate[unit]).format('YYYY-MM-DD')
+
+      queryResult.length ? updataData(item) : insertData(item)
+
+    }
+
     setTimeout(() => {
-      spiderShudong('https:' + nextPageUrl)
-    }, 3000)
-  }
+      resolve({
+        currentUrl: url,
+        nextUrl: nextPageUrl
+      })
+    }, Math.round() * 3000 + 2000)
+
+  }).then(({ currentUrl, nextUrl }) => {
+    return nextUrl ? spiderShudong('https:' + nextUrl) : Promise.resolve(currentUrl)
+  })
 }
 
 module.exports = spiderShudong

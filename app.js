@@ -1,7 +1,13 @@
 const jiandan = require('./spider/jiandan')
 
-// jiandan.spiderShudong()
+const spiderJiandan = async () => {
 
-jiandan.spiderMeizi()
+  let shudongUrl = await jiandan.spiderShudong()
+  console.log(`Shu dong done, last url: ${shudongUrl}`)
 
-// jiandan.testPage()
+  let meiziUrl = await jiandan.spiderMeizi()
+  console.log(`Mei zi done, last url: ${meiziUrl}`)
+
+}
+
+spiderJiandan()
