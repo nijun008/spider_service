@@ -3,5 +3,6 @@ module.exports = {
   port: 3306,
   user: 'root',
   password: 'queen',
-  database: 'hot_dev'
+  database: 'hot_dev',
+  charset : 'utf8mb4'
 }
