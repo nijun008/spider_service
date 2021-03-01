@@ -9,12 +9,6 @@ const dbName = 'movies'
 
 // const config = require('./config')
 
-const urls = [
-  'https://www.javbus.com/SSIS-001',
-  'https://www.javbus.com/WAAA-032',
-  'https://www.javbus.com/WAAA-031',
-]
-
 function getMovie(url) {
   let nightmare = Nightmare()
   

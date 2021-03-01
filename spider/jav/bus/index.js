@@ -1,5 +1,3 @@
-const spiderMovie = require('./movie')
+const spiderBus = require('./page')
 
-module.exports = {
-  spiderMovie
-}
+module.exports = spiderBus

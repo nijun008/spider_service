@@ -14,7 +14,8 @@ const spiderJiandan = async () => {
 // spiderJiandan()
 
 const spiderJav = async () => {
-  let urls = await jav.bus.spiderMovie(['https://www.javbus.com/SSIS-001', 'https://www.javbus.com/ABW-054', 'https://www.javbus.com/ABW-043'])
+  let endPage = await jav.bus(1, 5)
+  console.log(`Bus done, end page: ${endPage}`)
 }
 
 spiderJav()
