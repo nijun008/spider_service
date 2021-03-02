@@ -94,7 +94,11 @@ async function spiderMovie (urls = [], current = 0) {
 
       if (!queryResult.length) {
         let movie = await getMovie(url)
-        insertMovie(movie)
+        if (movie && movie.code) {
+          insertMovie(movie)
+        } else {
+          console.warn(code + ' failed')
+        }
       }
     }
 
