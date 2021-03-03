@@ -24,7 +24,10 @@ function getList(page) {
     let list = []
     $('.masonry-brick').each((index, item) => {
       let code = $(item).find('.photo-info date').eq(0).html()
-      list.push(`${host}${code}`)
+      list.push({
+        code: code,
+        url: $(item).find('a.movie-box').attr('href')
+      })
     })
 
     return list

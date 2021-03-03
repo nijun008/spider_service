@@ -14,7 +14,7 @@ const spiderJiandan = async () => {
 // spiderJiandan()
 
 const spiderJav = async () => {
-  let endPage = await jav.bus(16, 20)
+  let endPage = await jav.bus(103, 150)
   console.log(`Bus done, end page: ${endPage}`)
 }
 

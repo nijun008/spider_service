@@ -82,13 +82,12 @@ function insertMovie (movie) {
   })
 }
 
-async function spiderMovie (urls = [], current = 0) {
+async function spiderMovie (lists = [], index = 0) {
   
   return new Promise(async (resolve, reject) => {
-    let url = urls[current] || ''
+    let current = lists[index] || {}
+    let { url = '', code = '' } = current
     if (url) {
-      let urlStr = urls[current].split('/')
-      let code = urlStr[urlStr.length - 1].toUpperCase()
 
       let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE code = ?`, [code])
 
@@ -103,11 +102,11 @@ async function spiderMovie (urls = [], current = 0) {
     }
 
     setTimeout(() => {
-      return resolve({ urls, current })
+      return resolve({ lists, index })
     }, Math.round() * 3000 + 2000)
 
-  }).then(({ urls, current }) => {
-    return (current < urls.length - 1) ? spiderMovie(urls, current + 1) : Promise.resolve(urls)
+  }).then(({ lists, index }) => {
+    return (index < lists.length - 1) ? spiderMovie(lists, index + 1) : Promise.resolve(lists)
   })
 }
 
