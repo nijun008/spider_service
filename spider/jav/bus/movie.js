@@ -108,7 +108,7 @@ async function spiderMovie (lists = [], index = 0) {
 
     setTimeout(() => {
       resolve({ lists, index })
-    }, Math.random() * 10000 + 10000)
+    }, queryResult.length ? 0 : Math.random() * 10000 + 10000)
 
   }).then(({ lists, index }) => {
     return (index < lists.length - 1) ? spiderMovie(lists, index + 1) : Promise.resolve(lists)
