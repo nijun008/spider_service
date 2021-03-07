@@ -88,13 +88,15 @@ function insertMovie (movie) {
 }
 
 async function spiderMovie (lists = [], index = 0) {
+
+  let queryResult
   
   return new Promise(async (resolve, reject) => {
     let current = lists[index] || {}
     let { url = '', code = '' } = current
     if (url) {
 
-      let queryResult = await db.query(`SELECT * FROM ${dbName} WHERE code = ?`, [code])
+      queryResult = await db.query(`SELECT * FROM ${dbName} WHERE code = ?`, [code])
 
       if (!queryResult.length) {
         let movie = await getMovie(url)
