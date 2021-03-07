@@ -10,7 +10,12 @@ const dbName = 'movies'
 // const config = require('./config')
 
 function getMovie(url) {
-  let nightmare = Nightmare()
+  let nightmare = Nightmare({
+    // show: true,
+    webPreferences: {
+      images: false
+    }
+  })
   
   return nightmare
   .goto(url)
@@ -102,8 +107,8 @@ async function spiderMovie (lists = [], index = 0) {
     }
 
     setTimeout(() => {
-      return resolve({ lists, index })
-    }, Math.round() * 3000 + 2000)
+      resolve({ lists, index })
+    }, Math.random() * 10000 + 10000)
 
   }).then(({ lists, index }) => {
     return (index < lists.length - 1) ? spiderMovie(lists, index + 1) : Promise.resolve(lists)

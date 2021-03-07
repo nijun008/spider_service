@@ -14,7 +14,7 @@ class Db {
       connection.connect(err => {
         if (err) {
           console.log('数据库连接错误：', err)
-          reject(err)
+          return this.createConnection()
         } else {
           resolve(connection)
         }

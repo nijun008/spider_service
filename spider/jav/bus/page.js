@@ -10,10 +10,15 @@ function getList(page) {
 
   console.log(`Spidering Bus page number ${page}`)
 
-  let nightmare = Nightmare()
+  let nightmare = Nightmare({
+    // show: true,
+    webPreferences: {
+      images: false
+    }
+  })
 
   return nightmare
-  .goto(`${host}/page/${page}`)
+  .goto(`${host}page/${page}`)
   .wait('.masonry')
   .evaluate(() => {
     return document.querySelector('.masonry').innerHTML
@@ -46,8 +51,8 @@ async function spiderPage (startPage = 1, endPage = 2) {
     await spiderMovie(list)
 
     setTimeout(() => {
-      return resolve({ startPage, endPage })
-    }, Math.round() * 3000 + 2000)
+      resolve({ startPage, endPage })
+    }, Math.random() * 10000 + 10000)
 
   }).then(({ startPage, endPage }) => {
     return (startPage < endPage) ? spiderPage(startPage + 1, endPage) : Promise.resolve(endPage)
