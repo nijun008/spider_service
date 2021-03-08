@@ -14,7 +14,7 @@ class Db {
       connection.connect(err => {
         if (err) {
           console.log('数据库连接错误：', err)
-          return this.createConnection()
+          reject(err)
         } else {
           resolve(connection)
         }
@@ -61,7 +61,12 @@ class Db {
 
   async insert (sql, params) {
 
-    const connection = await this.createConnection()
+    let connection
+    try {
+      connection = await this.createConnection()
+    } catch (e) {
+      connection = await this.createConnection()
+    }
 
     return new Promise((resolve, reject) => {
       connection.query(sql, params, (err, result) => {

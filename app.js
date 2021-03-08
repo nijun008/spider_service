@@ -14,8 +14,10 @@ const spiderJiandan = async () => {
 // spiderJiandan()
 
 const spiderJav = async () => {
-  let endPage = await jav.bus(124, 130)
-  console.log(`Bus done, end page: ${endPage}`)
+  // let endPage = await jav.bus(1, 4)
+  // console.log(`Bus done, end page: ${endPage}`)
+
+  jav.library('ipz-127')
 }
 
 spiderJav()
