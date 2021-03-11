@@ -18,7 +18,11 @@ const endTimeFlag = '周'
 
 function getMeizi (url) {
 
-  let nightmare = Nightmare()
+  let nightmare = Nightmare({
+    webPreferences: {
+      images: false
+    }
+  })
 
   return nightmare
   .goto(url)
