@@ -1,9 +1,9 @@
 const Nightmare = require('nightmare')
 const cheerio = require("cheerio")
 
-const spiderMovie = require('./movie')
+// const spiderMovie = require('./movie')
 
-let host = 'https://b47w.com/cn/'
+let host = 'https://f50q.com/cn/'
 
 
 function searchMovie(code) {
