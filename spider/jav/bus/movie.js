@@ -57,8 +57,8 @@ function getMovie(url) {
       category: category.join(','),
       actor: actor.join(','),
       director: $('.movie .info p').eq(3).find('a').html(),
-      dbRating: 0,
-      libraryRating: 0,
+      dbRating: null,
+      libraryRating: null,
       rating: 0,
       favoriteCounts: 0
     }

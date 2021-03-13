@@ -17,9 +17,7 @@ const spiderJav = async () => {
   // let endPage = await jav.bus(1, 4)
   // console.log(`Bus done, end page: ${endPage}`)
 
-  jav.library('ipz-127')
+  jav.library(['STARS-333', 'SSIS-011'])
 }
 
 spiderJav()
-
-// test proxy
