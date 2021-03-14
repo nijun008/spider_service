@@ -17,6 +17,7 @@ function nightmareInit () {
     }
 
     nightmare = Nightmare({
+      waitTimeout: 60000,
       show: true,
       webPreferences: {
         images: false
@@ -25,13 +26,35 @@ function nightmareInit () {
 
     await nightmare
     .goto(host)
+    .wait('.btnAdultAgree')
     .wait(1000)
     .click('.btnAdultAgree')
     .wait('#idsearchbox')
-    .wait(300)
+    .wait(500)
     .cookies.get({ url: null })
 
     resolve(nightmare)
+  })
+}
+
+async function checkPageDom(selector, times = 0) {
+  return new Promise(async (resolve, reject) => {
+    nightmare.evaluate(selector => {
+      return document.querySelector(selector)
+    }).then(async dom => {
+      if (dom) {
+        return resolve()
+      } else if (times > 5) {
+        return reject('More than 5 times number of retries')
+      } else {
+        await nightmare.end().then()
+        nightmare = null
+        nightmareInit()
+        await nightmare.goto(host).wait(2000)
+        console.log('Try refresh page')
+        return checkPageDom(selector, times + 1)
+      }
+    })
   })
 }
 
@@ -42,14 +65,16 @@ async function searchKeywords(keywords) {
 
   await nightmareInit()
 
+  await checkPageDom('#idsearchbox')
+
   return nightmare.type('#idsearchbox', keywords.toUpperCase())
   .click('#idsearchbutton')
-  .wait(2000)
+  .wait(7000)
   .evaluate(() => {
     if (document.querySelector('.videos')) {
       return document.querySelector('.videos').innerHTML
-    } else {
-      return document.querySelector('#video_jacket_info').innerHTML
+    } else if (document.querySelector('#rightcolumn')) {
+      return document.querySelector('#rightcolumn').innerHTML
     }
   })
   .then(async html => {
@@ -61,6 +86,8 @@ async function searchKeywords(keywords) {
       saveMovie(movie)
     }
     
+    // 搜索结果为列表页
+
     let movieLists = []
     $('.video').each((index, item) => {
       let code = $(item).find('div.id').html()
@@ -84,7 +111,7 @@ async function movieDetail ({ code, url }) {
   return nightmare.goto(url)
   .wait('#video_id')
   .evaluate(() => {
-    return document.querySelector('#video_jacket_info').innerHTML
+    return document.querySelector('#rightcolumn').innerHTML
   })
   .then(html => {
     return analysisHtml(html, code)
@@ -96,28 +123,32 @@ async function movieDetail ({ code, url }) {
 
 // 解析影片详情页
 function analysisHtml (html, code) {
-  $ = cheerio.load(html)
+  let $ = cheerio.load(html)
 
   let category = []
-  $('#video_genres .genre a').each((index, item) => {
+  $('#video_jacket_info #video_genres .genre a').each((index, item) => {
     category.push($(item).html())
   })
 
   let actor = []
-  $('#video_cast .cast a').each((index, item) => {
+  $('#video_jacket_info #video_cast .cast a').each((index, item) => {
     actor.push($(item).html())
   })
 
   let movie = {
     code,
-    releasedDate: $('#video_date .text').html(),
-    duration: Number($('#video_length .text').html()) || 0,
-    studio: $('#video_maker .text a').html(),
+    name: $('#video_title a').html().replace(code + ' ', '').replace(code, ''),
+    releasedDate: $('#video_jacket_info #video_date .text').html(),
+    duration: Number($('#video_jacket_info #video_length .text').html()) || 0,
+    studio: $('#video_jacket_info #video_maker .text a').html(),
     publisher: $('#video_label .text a').html(),
     category: category.join(','),
     actor: actor.join(','),
-    director: $('#video_director .director a').html(),
-    libraryRating: Number($('#video_review .score').html().replace(/[()]/g, '') || 0)
+    director: $('#video_jacket_info #video_director .director a').html(),
+    libraryRating: Number($('#video_jacket_info #video_review .score').html().replace(/[()]/g, '') || 0),
+    rating: 0,
+    dbRating: null,
+    favoriteCounts: 0
   }
 
   return movie
@@ -155,12 +186,13 @@ function updateMovie (movie) {
   let nowDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
 
   let paramsArr = [
+    movie.name,
     movie.libraryRating,
     nowDate,
     movie.code
   ]
 
-  db.insert(`UPDATE ${dbName} SET libraryRating = ?,updateDate = ? WHERE code = ?`, paramsArr).then(() => {
+  db.insert(`UPDATE ${dbName} SET name = ?,libraryRating = ?,updateDate = ? WHERE code = ?`, paramsArr).then(() => {
     return true
   }).catch(err => {
     console.log('更新数据出错', err)
@@ -178,7 +210,7 @@ async function spiderMovieDetail (movieLists = [], curret = 0) {
 
     setTimeout(() => {
       resolve({ movieLists, curret })
-    }, Math.random() * 10000 + 10000)
+    }, Math.random() * 10000 + 2000)
 
   }).then(({ movieLists, curret }) => {
     return (curret + 1 < movieLists.length) ? spiderMovieDetail(movieLists, curret + 1) : Promise.resolve(movieLists)
@@ -192,18 +224,18 @@ async function spiderKeywords (keyLists = [], curret = 0) {
     if (!keyLists.length) return resolve({ keyLists, curret })
     
     let movieLists = await searchKeywords(keyLists[curret])
-    console.log(movieLists)
+
     await spiderMovieDetail(movieLists)
 
     setTimeout(() => {
       resolve({ keyLists, curret })
-    }, Math.random() * 10000 + 10000)
+    }, Math.random() * 10000 + 2000)
 
   }).then(({ keyLists, curret }) => {
     if (curret + 1 < keyLists.length) {
       return spiderKeywords(keyLists, curret + 1)
     } else {
-      nightmare.end()
+      nightmare.end().then().catch()
       return Promise.resolve(keyLists)
     }
   })
