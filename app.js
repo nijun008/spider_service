@@ -17,7 +17,7 @@ const spiderJav = async () => {
   // let endPage = await jav.bus(1, 4)
   // console.log(`Bus done, end page: ${endPage}`)
 
-  jav.library(["IPX-400", "PBD-340", "JUFD-866", "IPX-274", "ID-036", "ABP-340", "TAAK-024", "SSNI-865", "JUFD-767", "PFES-012", "VRTM-240", "PGD-876", "IPZ-976", "ABP-320"])
+  jav.library(["SSNI-436"])
 }
 
 spiderJav()

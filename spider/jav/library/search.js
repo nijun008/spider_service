@@ -21,6 +21,9 @@ function nightmareInit () {
       show: true,
       webPreferences: {
         images: false
+      },
+      openDevTools: {
+        mode: 'detach'
       }
     })
 
@@ -40,7 +43,12 @@ function nightmareInit () {
 async function checkPageDom(selector, times = 0) {
   return new Promise(async (resolve, reject) => {
     nightmare.evaluate(selector => {
-      return document.querySelector(selector)
+      console.log('选择器:' + selector)
+      console.log($(selector).length)
+      // return document.querySelector(selector).innerHTML
+      return new Promise((resolve, reject) => {
+        setTimeout(() => resolve(document.querySelector(selector).innerText), 900000)
+      }, selector)
     }).then(async dom => {
       if (dom) {
         return resolve()
@@ -49,7 +57,7 @@ async function checkPageDom(selector, times = 0) {
       } else {
         await nightmare.end().then()
         nightmare = null
-        nightmareInit()
+        await nightmareInit()
         await nightmare.goto(host).wait(2000)
         console.log('Try refresh page')
         return checkPageDom(selector, times + 1)
@@ -65,7 +73,7 @@ async function searchKeywords(keywords) {
 
   await nightmareInit()
 
-  await checkPageDom('#idsearchbox')
+  // await checkPageDom('#idsearchbox')
 
   return nightmare.type('#idsearchbox', keywords.toUpperCase())
   .click('#idsearchbutton')
@@ -135,6 +143,12 @@ function analysisHtml (html, code) {
     actor.push($(item).html())
   })
 
+  let score = $('#video_jacket_info #video_review .score').html() || null
+
+  if (score) {
+    score = Number(score.replace(/[()]/g, ''))
+  }
+
   let movie = {
     code,
     name: $('#video_title a').html().replace(code + ' ', '').replace(code, ''),
@@ -145,7 +159,7 @@ function analysisHtml (html, code) {
     category: category.join(','),
     actor: actor.join(','),
     director: $('#video_jacket_info #video_director .director a').html(),
-    libraryRating: Number($('#video_jacket_info #video_review .score').html().replace(/[()]/g, '') || 0),
+    libraryRating: score,
     rating: 0,
     dbRating: null,
     favoriteCounts: 0
